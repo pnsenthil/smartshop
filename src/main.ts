@@ -1,7 +1,7 @@
-import { mountUI } from './ui';
+import { mountEnhancedUI } from './enhancedUI';
 import './styles.css';
 
 const app = document.getElementById('app')!;
-mountUI(app);
+mountEnhancedUI(app);
 
 

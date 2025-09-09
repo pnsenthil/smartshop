@@ -1,0 +1,17 @@
+{
+  "name": "smart-shop-nudges",
+  "version": 2,
+  "public": true,
+  "github": {
+    "silent": true
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install"
+}

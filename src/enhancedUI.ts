@@ -6,6 +6,7 @@ export function mountEnhancedUI(root: HTMLElement) {
   let currentProfileType: ProfileType = 'budget-family';
   let { engine, session, user, scenarios } = createEnhancedDemo(currentProfileType);
   let useAI = true;
+  let mobileView: 'home' | 'shopping' = 'home'; // Track mobile view state
 
   root.innerHTML = `
     <div class="container">
@@ -41,24 +42,39 @@ export function mountEnhancedUI(root: HTMLElement) {
           <div class="phone-notch"></div>
           <div class="phone-screen">
             <div class="phone-content" id="phone-content">
-              <div class="mobile-header">
-                <div class="mobile-app-name">SmartShop</div>
-                <div class="mobile-tagline">Smart shopping made simple</div>
-              </div>
-              
-              <div class="mobile-products">
-                <div class="mobile-products-title">
-                  🛍️ Shop Products
-                  <span style="font-size:10px; color:var(--muted); margin-left:auto;" id="product-count">0 products</span>
+              <!-- Mobile Home Screen -->
+              <div id="mobile-home" class="mobile-view">
+                <div class="mobile-header">
+                  <div class="mobile-app-name">SmartShop</div>
+                  <div class="mobile-tagline">Choose your shopping experience</div>
                 </div>
-                <div class="mobile-products-grid" id="mobile-products-grid"></div>
+                <div class="profile-cards" id="profile-cards"></div>
               </div>
               
-              <div class="phone-card">
-                <h3>Basket</h3>
-                <div id="phone-basket"></div>
-                <div class="basket-total"><span>Total</span><span id="phone-total">£0.00</span></div>
-                <button id="checkout-btn" class="checkout-btn" style="display:none;">Proceed to Checkout</button>
+              <!-- Mobile Shopping Experience -->
+              <div id="mobile-shopping" class="mobile-view" style="display:none;">
+                <div class="mobile-header">
+                  <div class="mobile-nav">
+                    <button id="back-home-btn" class="back-btn">← Back</button>
+                    <div class="mobile-app-name">SmartShop</div>
+                  </div>
+                  <div class="mobile-profile-badge" id="mobile-profile-badge"></div>
+                </div>
+                
+                <div class="mobile-products">
+                  <div class="mobile-products-title">
+                    🛍️ Shop Products
+                    <span style="font-size:10px; color:var(--muted); margin-left:auto;" id="product-count">0 products</span>
+                  </div>
+                  <div class="mobile-products-grid" id="mobile-products-grid"></div>
+                </div>
+                
+                <div class="phone-card">
+                  <h3>Basket</h3>
+                  <div id="phone-basket"></div>
+                  <div class="basket-total"><span>Total</span><span id="phone-total">£0.00</span></div>
+                  <button id="checkout-btn" class="checkout-btn" style="display:none;">Proceed to Checkout</button>
+                </div>
               </div>
             </div>
             <div id="nudge" class="nudge-sheet" aria-live="polite"></div>
@@ -82,9 +98,17 @@ export function mountEnhancedUI(root: HTMLElement) {
   const activityLog = document.getElementById('nudge-activity-log')!;
   const aiStatusDot = document.getElementById('aiStatusDot') as HTMLSpanElement;
   const checkoutBtn = document.getElementById('checkout-btn')! as HTMLButtonElement;
+  
+  // Mobile navigation elements
+  const mobileHome = document.getElementById('mobile-home')!;
+  const mobileShopping = document.getElementById('mobile-shopping')!;
+  const profileCards = document.getElementById('profile-cards')!;
+  const backHomeBtn = document.getElementById('back-home-btn')!;
+  const mobileProfileBadge = document.getElementById('mobile-profile-badge')!;
 
   aiToggle?.addEventListener('change', () => { useAI = !!aiToggle.checked; });
   checkoutBtn?.addEventListener('click', () => showCheckoutSummary());
+  backHomeBtn?.addEventListener('click', () => showMobileHome());
 
   // Create profile selector buttons
   function renderProfileSelector() {
@@ -135,6 +159,98 @@ export function mountEnhancedUI(root: HTMLElement) {
       `<div style="font-weight:700; color:var(--brand-navy); margin-bottom:10px; font-size:12px;">${profileEmoji} ${profile.displayName} - Try these products:</div>${triggers}` : 
       '';
   }
+
+  // Mobile navigation functions
+  function showMobileHome() {
+    mobileView = 'home';
+    mobileHome.style.display = 'block';
+    mobileShopping.style.display = 'none';
+    
+    // Reset session when going back to home
+    session.basket = [];
+    session.scans = [];
+    session.nudgeHistory = [];
+    renderBasket();
+    
+    // Hide any open nudges
+    nudgeContainer.classList.remove('open');
+    nudgeContainer.innerHTML = '';
+    
+    // Clear activity log
+    activityLog.textContent = 'No nudges yet';
+  }
+
+  function showMobileShopping(profileType: ProfileType) {
+    mobileView = 'shopping';
+    currentProfileType = profileType;
+    
+    // Switch to the selected profile
+    const newDemo = createEnhancedDemo(profileType);
+    engine = newDemo.engine;
+    session = newDemo.session;
+    user = newDemo.user;
+    scenarios = newDemo.scenarios;
+    
+    // Update mobile profile badge
+    const profile = USER_PROFILES[profileType];
+    const profileEmojis: Record<string, string> = {
+      'budget-family': '💰',
+      'health-fitness': '💪',
+      'convenience-professional': '⚡'
+    };
+    mobileProfileBadge.innerHTML = `${profileEmojis[profileType]} ${profile.displayName}`;
+    
+    // Show shopping view
+    mobileHome.style.display = 'none';
+    mobileShopping.style.display = 'block';
+    
+    // Update desktop view as well
+    renderProfileSelector();
+    renderProfileInfo();
+    renderNudgeTriggerGuide();
+    renderMobileProducts();
+    renderBasket();
+  }
+
+  // Render mobile profile cards
+  function renderMobileProfileCards() {
+    const profileData = [
+      {
+        type: 'budget-family' as ProfileType,
+        name: 'Sarah Johnson',
+        category: 'FamilySaver',
+        headshot: '👩',
+        color: '#1f8f4e'
+      },
+      {
+        type: 'health-fitness' as ProfileType,
+        name: 'Mike Chen',
+        category: 'ActiveEats',
+        headshot: '👨',
+        color: '#3949ab'
+      },
+      {
+        type: 'convenience-professional' as ProfileType,
+        name: 'Emma Davis',
+        category: 'TimeSaver',
+        headshot: '👩‍💼',
+        color: '#e86b00'
+      }
+    ];
+
+    profileCards.innerHTML = profileData.map(profile => `
+      <div class="profile-card-clean" onclick="selectMobileProfile('${profile.type}')">
+        <div class="profile-headshot">${profile.headshot}</div>
+        <div class="profile-name">${profile.name}</div>
+        <div class="profile-category" style="color: ${profile.color};">${profile.category}</div>
+      </div>
+    `).join('');
+  }
+
+  // Global function for profile selection (called from HTML)
+  (window as any).selectMobileProfile = (profileType: ProfileType) => {
+    showMobileShopping(profileType);
+  };
 
   // Switch profile
   function switchProfile(profileType: ProfileType) {
@@ -588,6 +704,7 @@ export function mountEnhancedUI(root: HTMLElement) {
   renderProfileSelector();
   renderProfileInfo();
   renderNudgeTriggerGuide();
+  renderMobileProfileCards(); // Render mobile home screen
   renderMobileProducts();
   renderBasket();
 
